@@ -38,8 +38,6 @@ y la representaré como `None`.
 """
 
 from juegos_simplificado import ModeloJuegoZT2
-from juegos_simplificado import juega_dos_jugadores
-from random import choice
 from re import match
 from minimax import jugador_negamax
 from minimax import minimax_iterativo
@@ -98,7 +96,7 @@ class Otello(ModeloJuegoZT2):
             return s
 
         estado = list(s)
-        for inc_i in (-1,0,1):
+        for inc_i in (-1,0,1): 
             for inc_j in (-1,0,1):
                 if inc_i == inc_j == 0:
                     continue
@@ -153,11 +151,10 @@ def evaluar(s):
 
 def ordenar(jugadas, jugador):
     def casillas_peligrosas(a):
-        # centro
-
         if a == None:
             return 0
 
+        # centro
         if (a[0]-2) in range(4) and (a[1]-2) in range(4):
             return 1
 
@@ -199,14 +196,14 @@ def pprint_estado(s,acciones=()):
 def pprint_accion(accion, fin='\n'):
     print('abcdefgh'[accion[1]] + str(accion[0]+1),end=fin)
 
-def crear_jugador_artificial(es_iterativo, num):
+def jugador_artificial(iterativo, num):
 
     def jugador(juego, estado, jugador):
         acciones = juego.jugadas_legales(estado,jugador)
         pprint_estado(estado,acciones)
 
         accion = None
-        if es_iterativo:
+        if iterativo:
             accion = minimax_iterativo(
                 juego, estado, jugador,
                 ordena=ordenar, evalua=evaluar, tiempo=num)
@@ -214,13 +211,6 @@ def crear_jugador_artificial(es_iterativo, num):
             accion = jugador_negamax(
                 juego, estado, jugador,
                 ordena=ordenar, evalua=evaluar, d=num)
-
-        if accion == None:
-            print('\nNo hay acciones legales para las piezas ',end='')
-            print(('', 'negras', 'blancas')[jugador],end='\n\n')
-        else:
-            print("\nSe jugó ", end='')
-            pprint_accion(accion,'\n\n')
 
         return accion
 
@@ -239,16 +229,61 @@ def jugador_manual(juego, estado, jugador):
 
     if accion == None:
         print('No hay acciones legales para las piezas ',end='')
-        print(('', 'negras', 'blancas')[jugador],end='\n\n')
+        print(('negras' if jugador == 1 else 'blancas'),end='\n\n')
 
     return accion
 
-def main():
-    # iterativo
-    j = crear_jugador_artificial(True,3)
-    ganancia, estado = juega_dos_jugadores(Otello(), j, j)
-    pprint_estado(estado)
-    print('\nGanaron las piezas ' + ('negras' if ganancia == 1 else 'blancas') )
+def simulacion_otello(jugador1, jugador2):
+    juego = Otello()
+    s, j = juego.inicializa()
+    while not juego.terminal(s):
+        a = jugador1(juego, s, j) if j == 1 else jugador2(juego, s, j)
+        s = juego.transicion(s, a, j)
+
+        if a == None:
+            print('\nNo hay acciones legales para las piezas ',end='')
+            print(('negras' if j == 1 else 'blancas'),end='\n\n')
+        else:
+            print("\nSe jugó ", end='')
+            pprint_accion(a,'\n\n')
+
+        j = -j
+    return juego.ganancia(s), s
+
+def menu():
+    jugs = []
+    for j in [1, -1]:
+        print(f"Selección del jugador {"negro (j1)" if j == 1 else "blanco (j2)"}:")
+        sel = 0
+        print("   1. Jugador manual")
+        print("   2. Jugador negamax limitado en profundidad")
+        print("   3. Jugador negamax limitado en tiempo\n")
+
+        sel = ""
+        while not match("[1-3]\\Z", sel):
+            sel = input("Introduce opcion: ")
+
+        sel = int(sel)
+        if sel == 1:
+            jugs.append(jugador_manual)
+
+        elif sel == 2:
+            d = ""
+            while not match("[0-9]+\\Z", d) or int(d) < 1:
+                d = input("Profundidad: ")
+            jugs.append(jugador_artificial(False, int(d)))
+
+        else:
+            t = ""
+            while not match("[0-9]+\\Z", t) or int(t) < 1:
+                t = input("Tiempo: ")
+            jugs.append(jugador_artificial(True, int(t)))
+        
+        print('')
+    return jugs
 
 if __name__ == '__main__':
-    main()
+    j1, j2 = menu()
+    ganancia, estado_final = simulacion_otello(j1, j2)
+    pprint_estado(estado_final)
+    print('\nGanaron las piezas ' + ('negras' if ganancia == 1 else 'blancas'))
