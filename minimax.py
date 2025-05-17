@@ -60,6 +60,8 @@ def negamax(
         return [], transp[estado][0]
     
     v = -1e10
+    #mejor = None
+    #mejores = []
     jugadas = list(juego.jugadas_legales(estado, jugador))
     if ordena != None:
         jugadas = ordena(jugadas, jugador)
