@@ -106,7 +106,7 @@ def ordena_centro(jugadas, jugador):
     """
     Ordena las jugadas de acuerdo a la distancia al centro
     """
-    return sorted(jugadas, key=lambda x: abs(x - 4))
+    return sorted(jugadas, key=lambda x: abs(x - 3))
 
 def evalua_3con(s):
     """
