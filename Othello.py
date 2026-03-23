@@ -60,3 +60,30 @@ class Othello(js.JuegoZT2):
             return False
         
         return (casilla for casilla in range(64) if es_legal(casilla))
+    
+    def sucesor(self, s, a, j):
+        s = list(s[:])
+        s[a] = j #colocamos la ficha en la casilla a
+
+        direcciones = [-9, -8, -7, -1, 1, 7, 8, 9]
+
+        for d in direcciones:
+            fichas_a_voltear = []
+            vecino = a + d
+
+            # recolecta fichas del oponente en la direccion dada
+            while 0 <= vecino < 64 and s[vecino] == -j:
+                fichas_a_voltear.append(vecino)
+                vecino += d
+
+            # voltear todo lo recolectado
+            if 0 <= vecino < 64 and s[vecino] == j:
+                for casilla in fichas_a_voltear:
+                    s[casilla] = j
+        
+        return tuple(s)
+    
+    def terminal(self, s):
+        if 0 not in s or (not any(self.jugadas_legales(s, 1)) and not any(self.jugadas_legales(s, -1))):
+            return True
+        return False
