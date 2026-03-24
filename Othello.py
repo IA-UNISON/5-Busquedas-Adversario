@@ -31,8 +31,11 @@ class Othello(js.JuegoZT2):
         s[27] = -1 # O
         s[28] = 1 # X
         s[35] = 1 # x
-        s[36 = -1] # O
+        s[36] = -1 # O
         return tuple(s)
+    
+    def borde_valido(self, casilla, vecino):
+            return abs(casilla % 8 - vecino % 8) <= 1
     
     def jugadas_legales(self, s, j):
         """
@@ -51,11 +54,13 @@ class Othello(js.JuegoZT2):
                 return False
             for d in direcciones:
                 vecino = casilla + d
-                if 0 <= vecino < 64 and s[vecino] == -j:
+                if 0 <= vecino < 64 and self.borde_valido(casilla, vecino) and s[vecino] == -j:
                     vecino += d
-                    while 0 <= vecino < 64 and s[vecino] == -j:
+                    if not (0 <= vecino < 64 and self.borde_valido(vecino - d, vecino)):
+                        continue
+                    while 0 <= vecino < 64 and self.borde_valido(vecino - d, vecino) and s[vecino] == -j:
                         vecino += d
-                    if 0 <= vecino < 64 and s[vecino] == j:
+                    if 0 <= vecino < 64 and self.borde_valido(vecino - d, vecino) and s[vecino] == j:
                         return True
             return False
         
@@ -71,19 +76,100 @@ class Othello(js.JuegoZT2):
             fichas_a_voltear = []
             vecino = a + d
 
+            if 0 <= vecino < 64 and self.borde_valido(a, vecino):
             # recolecta fichas del oponente en la direccion dada
-            while 0 <= vecino < 64 and s[vecino] == -j:
-                fichas_a_voltear.append(vecino)
-                vecino += d
+                while 0 <= vecino < 64 and self.borde_valido(vecino - d, vecino) and s[vecino] == -j:
+                    fichas_a_voltear.append(vecino)
+                    vecino += d
 
-            # voltear todo lo recolectado
-            if 0 <= vecino < 64 and s[vecino] == j:
-                for casilla in fichas_a_voltear:
-                    s[casilla] = j
+                # voltear todo lo recolectado
+                if 0 <= vecino < 64 and self.borde_valido(vecino - d, vecino) and s[vecino] == j:
+                    for casilla in fichas_a_voltear:
+                        s[casilla] = j
         
         return tuple(s)
+    
+    def ganancia(self, s):
+        fichas_j1 = s.count(1)
+        fichas_j2 = s.count(-1)
+        if fichas_j1 > fichas_j2:
+            return 1
+        if fichas_j2 > fichas_j1:
+            return -1
+        else:
+            return 0
     
     def terminal(self, s):
         if 0 not in s or (not any(self.jugadas_legales(s, 1)) and not any(self.jugadas_legales(s, -1))):
             return True
         return False
+    
+class InterfaceOthello(js.JuegoInterface):
+    def muestra_estado(self, s):
+        print('\n    ', end='')
+        for col in range(8):
+            print(f'  {col} ', end='')
+        print()
+        for i in range(8):
+            print(f'{i} ', end='')
+            for j in range(8):
+                casilla = 8 * i + j
+                if s[casilla] == 1:
+                    contenido = ' X '
+                elif s[casilla] == -1:
+                    contenido = ' O '
+                else:
+                    contenido = f'{casilla:2d} '
+                print(f'|{contenido}', end='')
+            print('|')
+            print('  ' + '+---' * 8 + '+')
+
+    def muestra_ganador(self, g):
+        if g == 1:
+            print("Gana el jugador X")
+        elif g == -1:
+            print("Gana el jugador O")
+        else:
+            print("Empate")
+
+    def jugador_humano(self, s, j):
+        print("Jugador", " XO"[j])
+        jugadas = list(self.juego.jugadas_legales(s, j))
+        print("Jugadas legales:", jugadas)
+        jugada = None
+        while jugada not in jugadas:
+            jugada = int(input("Jugada (0-63): "))
+        return jugada
+
+if __name__ == '__main__':
+    cfg = {
+        "Jugador 1": "Humano",
+        "Jugador 2": "Aleatorio",
+        "profundidad máxima": 3,
+        "tiempo": 10,
+        "ordena": None,
+        "evalua": None
+    }
+
+    def jugador_cfg(cadena):
+        if cadena == "Humano":
+            return "Humano"
+        elif cadena == "Aleatorio":
+            return js.JugadorAleatorio()
+        elif cadena == "Negamax":
+            return minimax.JugadorNegamax(
+                ordena=cfg["ordena"], d=cfg["profundidad máxima"], evalua=cfg["evalua"]
+            )
+        elif cadena == "Tiempo":
+            return minimax.JugadorNegamaxIterativo(
+                tiempo=cfg["tiempo"], ordena=cfg["ordena"], evalua=cfg["evalua"]
+            )
+
+    interfaz = InterfaceOthello(
+        Othello(),
+        jugador1=jugador_cfg(cfg["Jugador 1"]),
+        jugador2=jugador_cfg(cfg["Jugador 2"])
+    )
+
+    print("Juego de Othello")
+    interfaz.juega()
