@@ -7,21 +7,21 @@ Vamos a usar una orientación funcional en este modulo
 
 from random import shuffle, choice
     
-class JuegoZT2:
+class JuegoZT2: # En primer lugar, este es un molde. Es como un parent del GameMaker 2. Provee la estructura para que otros juegos la sigan y la modifiquen. No la modifiques ni sus funciones.
     """
     Clase abstracta para juegos de suma cero, por turnos, dos jugadores.
     
     Se asumen que los jugadores son 1 y -1
     
     """
-    def inicializa(self):
+    def inicializa(self): # Esto solamente declara la función y argumentos base. No tiene codigo porque se supone que los objetos hijos (ej. el juego del Gato) lo tienen que modificar-
         """
         Inicializa el estado inicial del juego, siempre inicia el jugador 1
         
         """
-        raise NotImplementedError("Hay que desarrollar este método, pues")
+        raise NotImplementedError("Hay que desarrollar este método, pues") # Esta función solamente esta aquí para que el programa te avise que no has implementado una función.
     
-    def jugadas_legales(self, s, j):
+    def jugadas_legales(self, s, j): # Está funcion se declara igual que la primera que vimos y esto se hace igual para las demas funciones que siguen del "molde"
         """
         Devuelve una lista con las jugadas legales para el jugador j
         en el estado s
@@ -52,16 +52,16 @@ class JuegoZT2:
         raise NotImplementedError("Hay que desarrollar este método, pues")
     
 
-class JuegoInterface:
+class JuegoInterface: # Es un molde para la interfaz en donde el usuario va a ver como va el juego. Muestra información sobre el juego.
     """
     Clase abstracta para mostrar el estado del juego, y pedir la jugada al usuario
 
     """
-    def __init__(self, juego, jugador1, jugador2):
-        self.juego = juego
-        self.jugador = [None, jugador1, jugador2]
+    def __init__(self, juego, jugador1, jugador2): # Es como un evento create del GameMaker 2. Establece el valor de variables internas del objeto al ser creado
+        self.juego = juego  # Guarda una referencia al objeto juego que se esta usand.
+        self.jugador = [None, jugador1, jugador2] # Establece los jugadores que van a jugar. Se pone None en [0] para que se puedar referir a los demas jugadores con jugador1 = [1] y jugador2 = [2]
     
-    def muestra_estado(self, s):
+    def muestra_estado(self, s): # Molde de función para los hijos, definido de manera similar a las funciones de la clase Juego ZT2
         """
         Muestra el estado del juego
         
@@ -82,41 +82,41 @@ class JuegoInterface:
         """
         raise NotImplementedError("Hay que desarrollar este método, pues")
 
-    def pide_jugada(self, jugador, s, j):
+    def pide_jugada(self, jugador, s, j): # Esta función regresa la desición del jugador que toca.
         """
         Pide al jugador escoger la jugada a realizar, entre las acciones posibles
 
         Regresa la acción escogida por el usuario, por defalt, se asume que el jugador es una interface
         
         """
-        if isinstance(self.jugador[j], Jugador):
-            return self.jugador[j].jugada(self.juego, s, j)
-        else:
-            return self.jugador_humano(s, j)
+        if isinstance(self.jugador[j], Jugador):    # Se asegura que el Jugador1 sea un objeto Jugador (osea que sea la IA), si lo es... 
+            return self.jugador[j].jugada(self.juego, s, j) # Regresa la decisión de la IA. Es como si aquí se ejecutara un State Machine de un NPC en Game Maker 2 
+        else:   # Si no lo es
+            return self.jugador_humano(s, j) # El jugador escoge su jugada
 
-    def juega(self, max_pasos=1_000):
+    def juega(self, max_pasos=1_000): # Comienza el juego, para cuando se encuentra un estado terminal (como 3 en raya en el caso del gato) y anunica al ganador
         """
         Juega el juego, mostrando el estado del juego, y al finalizar, muestra el ganador
         
         """
-        s = self.juego.inicializa()
-        self.muestra_estado(s)
-        j = 1
-        pasos = 0
-        while not self.juego.terminal(s) and pasos < max_pasos:
-            a = self.pide_jugada(self.jugador[j], s, j)
-            s = self.juego.sucesor(s, a, j)
-            self.muestra_estado(s)
-            j = -j
-            pasos += 1
-        self.muestra_ganador(self.juego.ganancia(s))
+        s = self.juego.inicializa() # Se inicia el juego y empieza en un estado inicial
+        self.muestra_estado(s) # Se muestra el estado inicial
+        j = 1 # Empieza el jugador1 = [1]
+        pasos = 0 # Numero de jugadas dadas
+        while not self.juego.terminal(s) and pasos < max_pasos: # Mientras no se encuentre un estado terminal o no se exceda el numero de pasos, vamos a seguir jugando (Until were both dead).
+            a = self.pide_jugada(self.jugador[j], s, j) # Conseguimos la accion (a) a tomar pidiendole la jugada al guador que toca este paso (el humano [1] o la IA [-1] => [2])
+            s = self.juego.sucesor(s, a, j) # Se calcula el estado sucesor del juego para que se vuelva el estado actual.
+            self.muestra_estado(s) # Mostramos el estado actual
+            j = -j # Cambiamos de jugador
+            pasos += 1 # Añadimos un paso a nuestro contador (Another step towards the inevitable).
+        self.muestra_ganador(self.juego.ganancia(s)) # Si termino el juego, mostramos el ganador
         
 
-class Jugador:
+class Jugador: # Esta clase representa a jugador IA
     """
     Clase abstracta para un jugador, que recibe el estado del juego y devuelve la jugada a realizar
     """
-    def jugada(self, juego, s, j):
+    def jugada(self, juego, s, j): # Aquí se pone el algoritmo que utiliza la IA para hacer su decisión
         """
         Devuelve la jugada a realizar por el jugador j en el estado s del juego
         
@@ -124,20 +124,21 @@ class Jugador:
         raise NotImplementedError("Hay que desarrollar este método, pues")
 
 
-class JugadorAleatorio(Jugador):
+class JugadorAleatorio(Jugador): # Este es una clase de un jugador que agarra a lo tonto. Reemplaza la funcion de jugada del clase Jugador
     """
     Jugador que escoge una jugada al azar entre las legales
     """
-    def jugada(self, juego, s, j):
-        return choice(list(juego.jugadas_legales(s, j)))
+    def jugada(self, juego, s, j): 
+        return choice(list(juego.jugadas_legales(s, j))) # Aquí se regresa una acción aleatoria de la lista de acciones legales que se pueden tomar en un juego (An IQ too low?)
 
 
-def minimax(juego, s, j):
+def minimax(juego, s, j): # Describe el algoritmo min max. De aquí para adelante son definciones de algoritmos y clases que reemplazan
     """
     Devuelve la mejor jugada para el jugador en el estado
     
     """
-    def max_val(s, j):
+    def max_val(s, j): # Describe el procedimiento que se debe dar en un nodo max
+
         if juego.terminal(s):
             return j * juego.ganancia(s)
         v = -1e10
