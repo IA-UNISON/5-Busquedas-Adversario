@@ -102,63 +102,105 @@ class InterfaceConecta4(js.JuegoInterface):
             jugada = int(input("Jugada: "))
         return jugada
 
-def ordena_centro(jugadas, jugador):
-    """
-    Ordena las jugadas de acuerdo a la distancia al centro
-    """
-    return sorted(jugadas, key=lambda x: abs(x - 4))
+def ordena_mejor(jugadas, jugador):
+    prioridad = [3, 2, 4, 1, 5, 0, 6]
 
-def evalua_3con(s):
-    """
-    Evalua el estado s para el jugador 1
-    """
-    conect3 = sum(
-        1 for i in range(7) for j in range(4) 
-        if (s[i + 7 * j] == s[i + 7 * (j + 1)] 
-            == s[i + 7 * (j + 2)] == 1)
-    ) - sum(
-        1 for i in range(7) for j in range(4) 
-        if (s[i + 7 * j] == s[i + 7 * (j + 1)] 
-            == s[i + 7 * (j + 2)] == -1)
-    ) + sum(
-        1 for i in range(6) for j in range(5) 
-        if (s[7 * i + j] == s[7 * i + j + 1] 
-            == s[7 * i + j + 2] == 1)
-    ) - sum(
-        1 for i in range(6) for j in range(5) 
-        if (s[7 * i + j] == s[7 * i + j + 1] 
-            == s[7 * i + j + 2] == -1)
-    ) + sum(
-        1 for i in range(5) for j in range(4) 
-        if (s[i + 7 * j] == s[i + 7 * j + 8] 
-            == s[i + 7 * j + 16] == 1)
-    ) - sum(
-        1 for i in range(5) for j in range(4) 
-        if (s[i + 7 * j] == s[i + 7 * j + 8] 
-            == s[i + 7 * j + 16] == -1)
-    ) + sum(
-        1 for i in range(5) for j in range(4) 
-        if (s[i + 7 * j + 3] == s[i + 7 * j + 9] 
-            == s[i + 7 * j + 15] == 1)
-    ) - sum(
-        1 for i in range(5) for j in range(4) 
-        if (s[i + 7 * j + 3] == s[i + 7 * j + 9] 
-            == s[i + 7 * j + 15] == -1)
-    )
-    promedio = conect3 / (7 * 4 + 6 * 5 + 5 * 4 + 5 * 4)
-    if abs(promedio) >= 1:
-        raise ValueError("Evaluación fuera de rango --> ", promedio)
-    return promedio
+    return sorted(jugadas, key=lambda x: prioridad.index(x))
+
+def evalua_pro(s):
+    # Inicializa el puntaje total del estado
+    score = 0
+
+    # Función interna que evalúa una "ventana" de 4 casillas
+    def evaluar_ventana(ventana):
+        puntos = 0
+
+        # Si el jugador 1 ya tiene 4 en línea → estado ganador
+        if ventana.count(1) == 4:
+            puntos += 1
+
+        # Si tiene 3 en línea y un espacio vacío → casi gana
+        elif ventana.count(1) == 3 and ventana.count(0) == 1:
+            puntos += 0.5
+
+        # Si tiene 2 en línea y 2 espacios → potencial a futuro
+        elif ventana.count(1) == 2 and ventana.count(0) == 2:
+            puntos += 0.2
+
+        # Si el oponente (jugador -1) tiene 3 en línea y un espacio
+        # → es una amenaza fuerte, se penaliza más (defensa prioritaria)
+        if ventana.count(-1) == 3 and ventana.count(0) == 1:
+            puntos -= 0.6  # bloquear es más importante que atacar
+
+        return puntos
+
+    # -------------------------------
+    # Favorecer el control del centro
+    # -------------------------------
+    # La columna central (columna 3) es la más estratégica
+    # porque permite más combinaciones ganadoras
+    centro = [s[3 + 7*i] for i in range(6)]
+
+    # Se suman puntos si el jugador 1 ocupa el centro
+    score += centro.count(1) * 0.15
+
+    # Se restan puntos si el oponente ocupa el centro
+    score -= centro.count(-1) * 0.15
+
+    # -------------------------------
+    # Evaluación horizontal
+    # -------------------------------
+    # Se recorren todas las filas
+    for i in range(6):
+        # Se toman todas las ventanas posibles de 4 en cada fila
+        for j in range(4):
+            ventana = [s[7*i + j + k] for k in range(4)]
+            score += evaluar_ventana(ventana)
+
+    # -------------------------------
+    # Evaluación vertical
+    # -------------------------------
+    # Se recorren todas las columnas
+    for i in range(7):
+        # Se toman ventanas verticales de tamaño 4
+        for j in range(3):
+            ventana = [s[i + 7*(j + k)] for k in range(4)]
+            score += evaluar_ventana(ventana)
+
+    # -------------------------------
+    # Evaluación diagonal (\)
+    # -------------------------------
+    # Diagonales de izquierda-arriba a derecha-abajo
+    for i in range(4):
+        for j in range(3):
+            ventana = [s[i + 7*j + 8*k] for k in range(4)]
+            score += evaluar_ventana(ventana)
+
+    # -------------------------------
+    # Evaluación diagonal (/)
+    # -------------------------------
+    # Diagonales de izquierda-abajo a derecha-arriba
+    for i in range(4):
+        for j in range(3):
+            ventana = [s[i + 7*j + 3 + 6*k] for k in range(4)]
+            score += evaluar_ventana(ventana)
+
+    # -------------------------------
+    # Normalización del resultado
+    # -------------------------------
+    # Se asegura que el valor esté entre -1 y 1
+    # (requisito del algoritmo minimax implementado)
+    return max(min(score, 1), -1)
 
 if __name__ == '__main__':
 
     cfg = {
         "Jugador 1": "Humano",      #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
-        "Jugador 2": "Aleatorio",   #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
+        "Jugador 2": "Tiempo",   #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
         "profundidad máxima": 5,
         "tiempo": 10,
-        "ordena": ordena_centro,    #Puede ser None o una función f(jugadas, j) -> lista de jugadas ordenada
-        "evalua": evalua_3con       #Puede ser None o una función f(estado) -> número entre -1 y 1
+        "ordena": ordena_mejor,    #Puede ser None o una función f(jugadas, j) -> lista de jugadas ordenada
+        "evalua": evalua_pro      #Puede ser None o una función f(estado) -> número entre -1 y 1
     }
 
     def jugador_cfg(cadena):
@@ -171,7 +213,7 @@ if __name__ == '__main__':
                 ordena=cfg["ordena"], d=cfg["profundidad máxima"], evalua=cfg["evalua"]
             )
         elif cadena == "Tiempo":
-            return minimax.JugadorNegamaxIterativo(
+             return minimax.JugadorMinimaxIterativo(
                 tiempo=cfg["tiempo"], ordena=cfg["ordena"], evalua=cfg["evalua"]
             )
         else:
