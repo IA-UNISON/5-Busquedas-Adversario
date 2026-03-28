@@ -57,7 +57,7 @@ def negamax( juego, s, j, alpha=-1e10, beta=1e10, ordena=None, d=None, evalua=No
     v = -1e10
     jugadas = list(juego.jugadas_legales(s, j))
     if ordena != None:
-        jugadas = ordena(jugadas, j)
+        jugadas = ordena(jugadas, j, s)
     else:
         shuffle(jugadas)
     if traza:
