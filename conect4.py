@@ -102,11 +102,28 @@ class InterfaceConecta4(js.JuegoInterface):
             jugada = int(input("Jugada: "))
         return jugada
 
-def ordena_centro(jugadas, jugador):
+def ordena_centro(jugadas, jugador, s, juego):
     """
     Ordena las jugadas de acuerdo a la distancia al centro
     """
-    return sorted(jugadas, key=lambda x: abs(x - 4))
+    return sorted(jugadas, key=lambda x: abs(x - 3))
+
+def ordena_reactivo(jugadas, jugador, s, juego):
+    """
+    primero juegada ganadoras, luego jugadas que evitan al jugador -1 ganar y luego usar ordena_centro
+    """
+    ganadoras = []
+    bloqueantes = []
+    resto = []
+    for a in jugadas:
+        sucesor = juego.sucesor(s, a, jugador)
+        if juego.ganancia(sucesor) == jugador:
+            ganadoras.append(a)
+        elif juego.ganancia(juego.sucesor(s, a, -jugador)) == -jugador:
+            bloqueantes.append(a)
+        else:
+            resto.append(a)
+    return ganadoras + bloqueantes + sorted(resto, key=lambda x: abs(x - 3))
 
 def evalua_3con(s):
     """
@@ -129,7 +146,7 @@ def evalua_3con(s):
         if (s[7 * i + j] == s[7 * i + j + 1] 
             == s[7 * i + j + 2] == -1)
     ) + sum(
-        1 for i in range(5) for j in range(4) 
+        1 for i in range(5  ) for j in range(4) 
         if (s[i + 7 * j] == s[i + 7 * j + 8] 
             == s[i + 7 * j + 16] == 1)
     ) - sum(
@@ -146,19 +163,71 @@ def evalua_3con(s):
             == s[i + 7 * j + 15] == -1)
     )
     promedio = conect3 / (7 * 4 + 6 * 5 + 5 * 4 + 5 * 4)
+    
+    if abs(promedio) >= 1:
+        raise ValueError("Evaluación fuera de rango --> ", promedio)
+    return promedio
+
+def evalua_3_espacio(s):
+    
+    conect3 = sum(
+        1 for i in range(7) for j in range(3) #vertical
+        if (s[i + 7 * j] == s[i + 7 * (j + 1)] 
+            == s[i + 7 * (j + 2)] == 1 and (s[i + 7 * (j + 3)] == 0)) 
+    ) - sum(
+        1 for i in range(7) for j in range(3) 
+        if (s[i + 7 * j] == s[i + 7 * (j + 1)] 
+            == s[i + 7 * (j + 2)] == -1 and (s[i + 7 * (j + 3)] == 0))
+    ) + sum(
+        1 for i in range(6) for j in range(4) #horizontal
+        if (s[7 * i + j] == s[7 * i + j + 1] 
+            == s[7 * i + j + 2] == 1 
+            and (s[7 * i + j + 3] == 0 or (j - 1>= 0 and s[7 * i + j - 1] == 0)))
+    ) - sum(
+        1 for i in range(6) for j in range(4) 
+        if (s[7 * i + j] == s[7 * i + j + 1] 
+            == s[7 * i + j + 2] == -1 
+            and (s[7 * i + j + 3] == 0 or (j - 1>= 0 and s[7 * i + j - 1] == 0)))
+    ) + sum(                                
+        1 for i in range(4) for j in range(3) #diagonal 
+        if (s[i + 7 * j] == s[i + 7 * j + 8] 
+            == s[i + 7 * j + 16] == 1
+            and ((s[i + 7 * j + 24] == 0) or (i - 1 >= 0 and j - 1 >= 0 and s[i - 1 + 7 * (j - 1)] == 0))
+    )   
+    ) - sum(
+        1 for i in range(4) for j in range(3) 
+        if (s[i + 7 * j] == s[i + 7 * j + 8] 
+            == s[i + 7 * j + 16] == -1 
+            and ((s[i + 7 * j + 24] == 0) or (i - 1 >= 0 and j - 1 >= 0 and s[i - 1 + 7 * (j - 1)] == 0))
+            )
+    ) + sum(
+        1 for i in range(4) for j in range(3) #otra diagonal /
+        if (s[i + 7 * j + 3] == s[i + 7 * j + 9] 
+            == s[i + 7 * j + 15] == 1
+            and ((s[i + 7 * j + 21] == 0) or (j - 1 >= 0 and i + 4 <=6 and s[i + 7 * j - 3] == 0))
+    )
+    ) - sum(
+        1 for i in range(4) for j in range(3) 
+        if (s[i + 7 * j + 3] == s[i + 7 * j + 9] 
+            == s[i + 7 * j + 15] == -1
+            and ((s[i + 7 * j + 21] == 0) or (j - 1 >= 0 and i + 4 <=6 and s[i + 7 * j - 3] == 0)))
+    )
+
+    promedio = conect3 / (7 * 3 + 6 * 4 + 4 * 3 + 4 * 3)
     if abs(promedio) >= 1:
         raise ValueError("Evaluación fuera de rango --> ", promedio)
     return promedio
 
 if __name__ == '__main__':
+    
 
     cfg = {
-        "Jugador 1": "Humano",      #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
-        "Jugador 2": "Aleatorio",   #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
+        "Jugador 1": "Negamax",      #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
+        "Jugador 2": "Negamax",   #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
         "profundidad máxima": 5,
         "tiempo": 10,
-        "ordena": ordena_centro,    #Puede ser None o una función f(jugadas, j) -> lista de jugadas ordenada
-        "evalua": evalua_3con       #Puede ser None o una función f(estado) -> número entre -1 y 1
+        "ordena": ordena_reactivo,    #Puede ser None o una función f(jugadas, j) -> lista de jugadas ordenada
+        "evalua": evalua_3_espacio       #Puede ser None o una función f(estado) -> número entre -1 y 1
     }
 
     def jugador_cfg(cadena):
