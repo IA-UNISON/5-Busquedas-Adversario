@@ -1,0 +1,264 @@
+import juegos_simplificado as js
+import minimax
+
+"""
+El estado va a ser una tupla de 27 elementos
+
+0x  1x   2x
+
+0  | 1  | 2       0y
+---|----|---   
+3  | 4  | 5       1y   |   0z
+---|----|---
+6  | 7  | 8       2y
+
+9  | 10 | 11      0y
+---|----|---
+12 | 13 | 14      1y   |   1z 
+---|----|---
+15 | 16 | 17      2y  
+
+18 | 19 | 20      0y
+---|----|---
+21 | 22 | 23      1y   |   2z 
+---|----|---
+24 | 25 | 26      2y 
+
+Para seleccionar casillas en el gato usamos
+indice = z*9 + y*3 + x
+z*9 nos mueve a la capa que queremos
+y*3 nos desplaza a la fila
+x nos mueve a la columna.
+
+"""
+
+# clase del juego
+
+class UltimateTicTacToe(js.JuegoZT2):
+
+    def lineas_ganadoras(self):
+        """
+        Guarda todas las posibles conexiones de 3 que pueden hacer los jugadores
+        """
+        lineas = [] # lineas va a ser algo como [ [0,1,2] , [3,4,5] ... ] 
+
+        for z in range(3):
+            for y in range(3):
+                linea = [z*9 + y*3 + x for x in range(3)] # filas por ejemplo [0,1,2] -> 9 lineas
+                lineas.append(linea)
+        
+        for z in range(3):
+            for x in range(3):
+                linea = [z*9 + y*3 + x for y in range(3)] # columnas por ejemplo [0,3,6] -> 9 lineas
+                lineas.append(linea)
+        
+        for z in range(3):
+            lineas.append([z*9, z*9 + 4, z*9 + 8]) # diagonales cada capa como [0,4,8]  -> 6 lineas
+            lineas.append([z*9 + 2, z*9 + 4, z*9 + 6])
+            
+        for y in range(3):
+            for x in range(3):
+                linea = [z*9 + y*3 + x for z in range(3)] # verticales entre capas como [0,9,18] -> 9 lineas
+                lineas.append(linea)
+
+        lineas.append([0, 13, 26])
+        lineas.append([2, 13, 24]) # diagonales entre capas como [0,13,26], manualmente porque no se me ocurrio ciclo 
+        lineas.append([6, 13, 20]) # estas son de esquina a esquina
+        lineas.append([8, 13, 18])
+
+        lineas.append([1,13,25])
+        lineas.append([3,13,23]) # estas son internas, de arista a arista
+        lineas.append([7,13,19]) 
+        lineas.append([5,13,21])
+
+        lineas.append([0,12,24])
+        lineas.append([6,12,18]) # diagonales en las caras de afuera [0,12,24] etc.
+        lineas.append([0,10,20])
+        lineas.append([2,10,18])
+        lineas.append([2,14,26])
+        lineas.append([8,14,20])
+        lineas.append([6,16,26])
+        lineas.append([8,16,24])
+
+        return lineas
+
+    def inicializa(self):
+        """
+        Crea una lista de 27 elementos
+        """
+        if not hasattr(self, "lineas"):
+            self.lineas = self.lineas_ganadoras()
+        return tuple(27 * [0])
+    
+    def jugadas_legales(self, s, j):
+        """
+        Regresa las casillas vacias en el estado s
+        """
+        return [casilla for casilla in range(27) if s[casilla] == 0]
+    
+    def sucesor(self, s, a, j):
+        """
+        Estado que resulta de hacer la accion a, en el estado s, jugador j
+        """
+        s = list(s[:])
+        s[a] = j
+        return tuple(s)
+    
+    def terminal(self, s):
+        """
+        True si el estado es terminal, false de lo contrario
+        """
+        if 0 not in s or self.ganancia(s) != 0:
+            return True
+        return False
+    
+    def ganancia(self, s):
+        """
+        revisa si alguien conecto 3, si si, regresa el jugador que gano (1 o -1)
+        """
+        for linea in self.lineas:
+            a, b, c = linea
+            if s[a] != 0 and s[a] == s[b] == s[c]:
+                return s[a]
+        return 0
+    
+# clase de la interfaz
+
+class InterfaceUltimateTicTacToe(js.JuegoInterface):
+
+    def muestra_estado(self, s):
+        """
+        Muestra el estado del juego
+        """
+        a = ['   X   ' if x == 1 else '   O   ' if x == -1 
+             else str(i).center(7) for (i, x) in enumerate(s)]
+        
+        # capa de arriba
+        print('\n' + '╔═══════╦═══════╦═══════╗ ')
+        print('\n' + '║' + a[0] + '║' + a[1] + '║' + a[2] + '║')
+        print('\n' + '╠═══════╬═══════╬═══════╣')
+        print('\n' + '║' + a[3] + '║' + a[4] + '║' + a[5] + '║')
+        print('\n' + '╠═══════╬═══════╬═══════╣')
+        print('\n' + '║' + a[6] + '║' + a[7] + '║' + a[8] + '║')
+        print('\n' + '╚═══════╩═══════╩═══════╝\n')
+
+        # capa de en medio
+        print('\n' + '╔═══════╦═══════╦═══════╗ ')
+        print('\n' + '║' + a[9] + '║' + a[10] + '║' + a[11] + '║')
+        print('\n' + '╠═══════╬═══════╬═══════╣')
+        print('\n' + '║' + a[12] + '║' + a[13] + '║' + a[14] + '║')
+        print('\n' + '╠═══════╬═══════╬═══════╣')
+        print('\n' + '║' + a[15] + '║' + a[16] + '║' + a[17] + '║')
+        print('\n' + '╚═══════╩═══════╩═══════╝\n')
+
+        # capa de abajo
+        print('\n' + '╔═══════╦═══════╦═══════╗ ')
+        print('\n' + '║' + a[18] + '║' + a[19] + '║' + a[20] + '║')
+        print('\n' + '╠═══════╬═══════╬═══════╣')
+        print('\n' + '║' + a[21] + '║' + a[22] + '║' + a[23] + '║')
+        print('\n' + '╠═══════╬═══════╬═══════╣')
+        print('\n' + '║' + a[24] + '║' + a[25] + '║' + a[26] + '║')
+        print('\n' + '╚═══════╩═══════╩═══════╝\n')
+    
+    def muestra_ganador(self, ganancia):
+        """
+        Muestra el ganador cuando se acaba el juego
+        """
+        if ganancia == 0:
+            print('\nEmpate!')
+        elif ganancia == 1:
+            print('\nGana el jugador X!')
+        elif ganancia == -1: 
+            print('\nGana el jugador O!')
+        else: 
+            raise ValueError(f"Valor de ganancia inesperado: {ganancia!r}")
+            
+    def jugador_humano(self, s, j):
+        """
+        Pide jugada al jugador humano
+        """
+        jugada = None
+
+        if j == 1:
+            print('Turno de X')
+        elif j == -1:
+            print('Turno de O')
+        else:
+            raise ValueError(f"Valor de j inesperado: {j!r}")
+        
+        legales = self.juego.jugadas_legales(s, j)
+        while jugada not in legales:
+            jugada = int(input('Escribe tu jugada: '))
+
+        return jugada
+
+# Ordenamiento y evaluacion
+
+def ordena_jugadas(jugadas, jugador, lineas):
+    def puntaje(casilla):
+        return sum(casilla in linea for linea in lineas)
+    
+    return sorted(jugadas, key = puntaje, reverse = True)
+
+def evalua_estado(s, lineas):
+    conexionesX = 0
+    conexionesO = 0
+    
+    for linea in lineas:
+        a, b, c = linea
+        vals = [s[a], s[b], s[c]]
+        xs = vals.count(1)
+        os = vals.count(-1)
+        vacias = vals.count(0)
+
+        if xs == 2 and vacias == 1:
+            conexionesX += 1
+        if os == 2 and vacias == 1:
+            conexionesO += 1
+
+    evaluacion = (conexionesX - conexionesO) / 49
+    return evaluacion
+
+
+# main
+
+if __name__ == '__main__':
+    juego = UltimateTicTacToe()
+    juego.inicializa()
+
+    cfg = {
+        "Jugador 1": "Humano",      #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
+        "Jugador 2": "Humano",   #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
+        "profundidad máxima": 5,
+        "tiempo": 10,
+        "ordena": lambda jugadas, j: ordena_jugadas(jugadas, j, juego.lineas),    #Puede ser None o una función f(jugadas, j) -> lista de jugadas ordenada
+        "evalua": lambda s: evalua_estado(s, juego.lineas)       #Puede ser None o una función f(estado) -> número entre -1 y 1
+    }
+
+    def jugador_cfg(cadena):
+        if cadena == "Humano":
+            return "Humano"
+        elif cadena == "Aleatorio":
+            return js.JugadorAleatorio()
+        elif cadena == "Negamax":
+            return minimax.JugadorNegamax(
+                ordena=cfg["ordena"], d=cfg["profundidad máxima"], evalua=cfg["evalua"]
+            )
+        elif cadena == "Tiempo":
+            return minimax.JugadorNegamaxIterativo(
+                tiempo=cfg["tiempo"], ordena=cfg["ordena"], evalua=cfg["evalua"]
+            )
+        else:
+            raise ValueError("Jugador no reconocido")
+
+    interfaz = InterfaceUltimateTicTacToe(
+        UltimateTicTacToe(),
+        jugador1=jugador_cfg(cfg["Jugador 1"]),
+        jugador2=jugador_cfg(cfg["Jugador 2"])
+    )
+
+    interfaz.juega()
+
+    # para q no se me olviden
+    # "ordena": lambda jugadas, j: ordena_jugadas(jugadas, j, juego.lineas)
+    # "evalua": lambda s: evalua_estado(s, juego.lineas)
