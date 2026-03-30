@@ -64,9 +64,14 @@ class Othello(js.JuegoZT2):
                         return True
             return False
         
-        return (casilla for casilla in range(64) if es_legal(casilla))
+        jugadas = [casilla for casilla in range(64) if es_legal(casilla)]
+        if not jugadas:
+            return iter([-1])
+        return iter(jugadas)
     
     def sucesor(self, s, a, j):
+        if a == -1: # pasa turno
+            return s
         s = list(s[:])
         s[a] = j #colocamos la ficha en la casilla a
 
@@ -100,7 +105,9 @@ class Othello(js.JuegoZT2):
             return 0
     
     def terminal(self, s):
-        if 0 not in s or (not any(self.jugadas_legales(s, 1)) and not any(self.jugadas_legales(s, -1))):
+        sin_jugadas_j1 = list(self.jugadas_legales(s, 1)) == [-1]
+        sin_jugadas_j2 = list(self.jugadas_legales(s, -1)) == [-1]
+        if 0 not in s or (sin_jugadas_j1 and sin_jugadas_j2):
             return True
         return False
     
@@ -140,15 +147,62 @@ class InterfaceOthello(js.JuegoInterface):
         while jugada not in jugadas:
             jugada = int(input("Jugada (0-63): "))
         return jugada
+    
+def ordena_othello(jugadas, j):
+    esquinas = {0, 7, 56, 63}
+    x_squares = {9, 14, 49, 54}  
+    
+    def prioridad(casilla):
+        if casilla in esquinas:
+            return 4
+        fila, col = casilla // 8, casilla % 8
+        if fila == 0 or fila == 7 or col == 0 or col == 7:
+            return 3
+        if casilla in x_squares:
+            return 1
+        return 2
+    
+    return sorted(jugadas, key=prioridad, reverse=True)
+
+def evalua_othello(s):
+    esquinas = [0, 7, 56, 63]
+    
+    esq_j1 = sum(1 for c in esquinas if s[c] == 1)
+    esq_j2 = sum(1 for c in esquinas if s[c] == -1)
+    if esq_j1 + esq_j2 != 0:
+        factor_esquinas = (esq_j1 - esq_j2) / (esq_j1 + esq_j2)
+    else:
+        factor_esquinas = 0
+    
+    juego = Othello()
+    mov_j1 = len(list(juego.jugadas_legales(s, 1)))
+    mov_j2 = len(list(juego.jugadas_legales(s, -1)))
+    if mov_j1 + mov_j2 != 0:
+        factor_movilidad = (mov_j1 - mov_j2) / (mov_j1 + mov_j2)
+    else:
+        factor_movilidad = 0
+    
+    fic_j1 = s.count(1)
+    fic_j2 = s.count(-1)
+    if fic_j1 + fic_j2 != 0:
+        factor_fichas = (fic_j1 - fic_j2) / (fic_j1 + fic_j2)
+    else:
+        factor_fichas = 0
+    
+    evaluacion = (0.6 * factor_esquinas + 
+                  0.3 * factor_movilidad + 
+                  0.1 * factor_fichas)
+    
+    return evaluacion
 
 if __name__ == '__main__':
     cfg = {
         "Jugador 1": "Humano",
-        "Jugador 2": "Aleatorio",
-        "profundidad máxima": 3,
+        "Jugador 2": "Negamax",
+        "profundidad máxima": 5,
         "tiempo": 10,
-        "ordena": None,
-        "evalua": None
+        "ordena": ordena_othello,
+        "evalua": evalua_othello
     }
 
     def jugador_cfg(cadena):
