@@ -1,5 +1,5 @@
 """
-Juego de conecta 4
+Juego de conecta 4 :ppp
 
 El estado se va a representar como una lista de 42 elementos, tal que
 
@@ -104,51 +104,67 @@ class InterfaceConecta4(js.JuegoInterface):
 
 def ordena_centro(jugadas, jugador):
     """
-    Ordena las jugadas de acuerdo a la distancia al centro
+    Ordena las jugadas priorizando columnas con mayor valor estratégico.
+    Las columnas centrales tienen más peso porque permiten más combinaciones
+    de 4 en línea. Se asignan pesos fijos por columna.
     """
-    return sorted(jugadas, key=lambda x: abs(x - 4))
+    pesos = [1, 2, 3, 5, 3, 2, 1]
+    return sorted(jugadas, key=lambda x: -pesos[x])
 
 def evalua_3con(s):
     """
-    Evalua el estado s para el jugador 1
+    Evalua el estado s para el jugador 1.
+    Combina ventanas de 4 casillas en las 4 direcciones, puntuando:
+    - 3 fichas propias + 1 vacía:   +50  (amenaza de ganar)
+    - 2 fichas propias + 2 vacías:  +10
+    - 3 fichas rivales + 1 vacía:   -80  (bloquear es urgente)
+    - 2 fichas rivales + 2 vacías:  -15
+      3 fichas  + 3 vacias = -75 (bloque intermedio)
     """
-    conect3 = sum(
-        1 for i in range(7) for j in range(4) 
-        if (s[i + 7 * j] == s[i + 7 * (j + 1)] 
-            == s[i + 7 * (j + 2)] == 1)
-    ) - sum(
-        1 for i in range(7) for j in range(4) 
-        if (s[i + 7 * j] == s[i + 7 * (j + 1)] 
-            == s[i + 7 * (j + 2)] == -1)
-    ) + sum(
-        1 for i in range(6) for j in range(5) 
-        if (s[7 * i + j] == s[7 * i + j + 1] 
-            == s[7 * i + j + 2] == 1)
-    ) - sum(
-        1 for i in range(6) for j in range(5) 
-        if (s[7 * i + j] == s[7 * i + j + 1] 
-            == s[7 * i + j + 2] == -1)
-    ) + sum(
-        1 for i in range(5) for j in range(4) 
-        if (s[i + 7 * j] == s[i + 7 * j + 8] 
-            == s[i + 7 * j + 16] == 1)
-    ) - sum(
-        1 for i in range(5) for j in range(4) 
-        if (s[i + 7 * j] == s[i + 7 * j + 8] 
-            == s[i + 7 * j + 16] == -1)
-    ) + sum(
-        1 for i in range(5) for j in range(4) 
-        if (s[i + 7 * j + 3] == s[i + 7 * j + 9] 
-            == s[i + 7 * j + 15] == 1)
-    ) - sum(
-        1 for i in range(5) for j in range(4) 
-        if (s[i + 7 * j + 3] == s[i + 7 * j + 9] 
-            == s[i + 7 * j + 15] == -1)
-    )
-    promedio = conect3 / (7 * 4 + 6 * 5 + 5 * 4 + 5 * 4)
-    if abs(promedio) >= 1:
-        raise ValueError("Evaluación fuera de rango --> ", promedio)
-    return promedio
+    def puntua_ventana(ventana, jugador):
+        rival = -jugador
+        propias  = ventana.count(jugador)
+        rivales  = ventana.count(rival)
+        vacias   = ventana.count(0)
+        if propias == 3 and vacias == 1:
+            return 50
+        if propias == 2 and vacias == 2:
+            return 10
+        if rivales == 3 and vacias == 1:
+            return -80
+        if rivales == 2 and vacias == 2:
+            return -15
+        return 0
+
+    score = 0
+
+    # Ventanas horizontales
+    for fila in range(6):
+        for col in range(4):
+            ventana = [s[7 * fila + col + k] for k in range(4)]
+            score += puntua_ventana(ventana, 1)
+
+    # Ventanas verticales
+    for col in range(7):
+        for fila in range(3):
+            ventana = [s[col + 7 * (fila + k)] for k in range(4)]
+            score += puntua_ventana(ventana, 1)
+
+    # Diagonales descendentes
+    for fila in range(3):
+        for col in range(4):
+            ventana = [s[col + k + 7 * (fila + k)] for k in range(4)]
+            score += puntua_ventana(ventana, 1)
+
+    # Diagonales ascendentes
+    for fila in range(3, 6):
+        for col in range(4):
+            ventana = [s[col + k + 7 * (fila - k)] for k in range(4)]
+            score += puntua_ventana(ventana, 1)
+
+    # Normalizar a [-1, 1]
+    max_val = 1500.0
+    return max(-1.0, min(1.0, score / max_val))
 
 if __name__ == '__main__':
 
