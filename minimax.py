@@ -56,8 +56,10 @@ def negamax( juego, s, j, alpha=-1e10, beta=1e10, ordena=None, d=None, evalua=No
     
     v = -1e10
     jugadas = list(juego.jugadas_legales(s, j))
+    # if ordena != None:
+    #     jugadas = ordena(jugadas, j)
     if ordena != None:
-        jugadas = ordena(jugadas, j)
+        jugadas = ordena(s, jugadas, j)
     else:
         shuffle(jugadas)
     if traza:
@@ -92,7 +94,7 @@ class JugadorNegamax(js.Jugador):
     
     def jugada(self, juego, s, j):
         return negamax(
-            juego, s, j, ordena=self.ordena, d=self.d, evalua=self.evalua
+            juego, s, j, ordena=self.ordena, d=self.d, evalua=self.evalua, transp={}
         )[0][0]
 
 

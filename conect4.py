@@ -102,11 +102,40 @@ class InterfaceConecta4(js.JuegoInterface):
             jugada = int(input("Jugada: "))
         return jugada
 
-def ordena_centro(jugadas, jugador):
+# def ordena_centro(jugadas, jugador):
+#     """
+#     Ordena las jugadas de acuerdo a la distancia al centro
+#     """
+#     return sorted(jugadas, key=lambda x: abs(x - 3))
+
+def ordena_centro(estado, jugadas, jugador):
     """
     Ordena las jugadas de acuerdo a la distancia al centro
     """
-    return sorted(jugadas, key=lambda x: abs(x - 4))
+    return sorted(jugadas, key=lambda x: abs(x - 3))
+
+# El número representa el número de jugadas en las que una ficha en esa
+# posición se puede involucrar. Ahora en vez de irse solo al centro, la
+# IA podría decidir irse a la casilla con mayores jugadas posibles.
+HEATMAP = [
+    3,  4,   5,   7,   5,  4,  3,
+    4,  6,   8,  10,   8,  6,  4,
+    5,  8,  11,  13,  11,  8,  5,
+    5,  8,  11,  13,  11,  8,  5,
+    4,  6,   8,  10,   8,  6,  4,
+    3,  4,   5,   7,   5,  4,  3
+]
+
+def ordena_heatmap(estado, jugadas, jugador):
+    
+    def obtener_calor(columna):
+        for fila in range(5, -1, -1):
+            i = columna + 7 * fila
+            if estado[i] == 0:
+                return HEATMAP[i]
+        return 0
+
+    return sorted(jugadas, key=obtener_calor, reverse=True)
 
 def evalua_3con(s):
     """
@@ -150,15 +179,73 @@ def evalua_3con(s):
         raise ValueError("Evaluación fuera de rango --> ", promedio)
     return promedio
 
+LINEAS = [
+    [0, 1, 2, 3], [1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6],
+    [7, 8, 9, 10], [8, 9, 10, 11], [9, 10, 11, 12], [10, 11, 12, 13],
+    [14, 15, 16, 17], [15, 16, 17, 18], [16, 17, 18, 19], [17, 18, 19, 20],
+    [21, 22, 23, 24], [22, 23, 24, 25], [23, 24, 25, 26], [24, 25, 26, 27],
+    [28, 29, 30, 31], [29, 30, 31, 32], [30, 31, 32, 33], [31, 32, 33, 34],
+    [35, 36, 37, 38], [36, 37, 38, 39], [37, 38, 39, 40], [38, 39, 40, 41],
+    [0, 7, 14, 21], [7, 14, 21, 28], [14, 21, 28, 35],
+    [1, 8, 15, 22], [8, 15, 22, 29], [15, 22, 29, 36],
+    [2, 9, 16, 23], [9, 16, 23, 30], [16, 23, 30, 37],
+    [3, 10, 17, 24], [10, 17, 24, 31], [17, 24, 31, 38],
+    [4, 11, 18, 25], [11, 18, 25, 32], [18, 25, 32, 39],
+    [5, 12, 19, 26], [12, 19, 26, 33], [19, 26, 33, 40],
+    [6, 13, 20, 27], [13, 20, 27, 34], [20, 27, 34, 41],
+    [14, 22, 30, 38],
+    [7, 15, 23, 31], [15, 23, 31, 39],
+    [0, 8, 16, 24], [8, 16, 24, 32], [16, 24, 32, 40],
+    [1, 9, 17, 25], [9, 17, 25, 33], [17, 25, 33, 41],
+    [2, 10, 18, 26], [10, 18, 26, 34],
+    [3, 11, 19, 27],
+    [21, 15, 9, 3], 
+    [28, 22, 16, 10], [22, 16, 10, 4],
+    [35, 29, 23, 17], [29, 23, 17, 11], [23, 17, 11, 5],
+    [36, 30, 24, 18], [30, 24, 18, 12], [24, 18, 12, 6],
+    [37, 31, 25, 19], [31, 25, 19, 13],
+    [38, 32, 26, 20]
+]
+
+def evaluar_lineas(estado):
+    """
+    Checa todas las lineas de 4 del tablero.
+
+    Hay 24 filas horizontales (4 lineas * 6 filas)
+    Hay 21 filas verticales (3 lineas * 7 columnas)
+    El resto son diagonales hacia abajo y arriba (12 lineas diag * 2 orientaciones)
+    https://stackoverflow.com/questions/10985000/how-should-i-design-a-good-evaluation-function-for-connect-4
+    """
+    puntos_j1 = 0
+    puntos_j2 = 0
+
+    for linea in LINEAS:
+        valores = [estado[i] for i in linea]
+        fichas_j1 = valores.count(1)
+        fichas_j2 = valores.count(-1)
+
+        if fichas_j1 > 0 and fichas_j2 > 0:
+            continue
+
+        if fichas_j2 == 0:
+            puntos_j1 += 1
+
+        if fichas_j1 == 0:
+            puntos_j2 += 1
+    
+    diferencia = puntos_j1 - puntos_j2
+
+    return diferencia / 70
+
 if __name__ == '__main__':
 
     cfg = {
         "Jugador 1": "Humano",      #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
-        "Jugador 2": "Aleatorio",   #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
+        "Jugador 2": "Negamax",   #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
         "profundidad máxima": 5,
         "tiempo": 10,
-        "ordena": ordena_centro,    #Puede ser None o una función f(jugadas, j) -> lista de jugadas ordenada
-        "evalua": evalua_3con       #Puede ser None o una función f(estado) -> número entre -1 y 1
+        "ordena": ordena_heatmap,    #Puede ser None o una función f(jugadas, j) -> lista de jugadas ordenada
+        "evalua": evaluar_lineas       #Puede ser None o una función f(estado) -> número entre -1 y 1
     }
 
     def jugador_cfg(cadena):
