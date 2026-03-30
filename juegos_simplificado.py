@@ -20,12 +20,12 @@ class JuegoZT2:
         
         """
         raise NotImplementedError("Hay que desarrollar este método, pues")
-    
+
     def jugadas_legales(self, s, j):
         """
         Devuelve una lista con las jugadas legales para el jugador j
         en el estado s
-        
+
         """
         raise NotImplementedError("Hay que desarrollar este método, pues")      
     

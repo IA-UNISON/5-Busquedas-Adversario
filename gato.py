@@ -109,6 +109,6 @@ if __name__ == '__main__':
     juego = Gato()
     interfaz = GatoInterface(
         juego, 
-        jugador1=js.JugadorAleatorio(), 
-        jugador2='Humano')
+        jugador1=js.JugadorAlphaBeta(), 
+        jugador2=js.JugadorAlphaBeta())
     interfaz.juega(10)
