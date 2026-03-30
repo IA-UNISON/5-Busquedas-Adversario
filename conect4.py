@@ -5,7 +5,7 @@ El estado se va a representar como una lista de 42 elementos, tal que
 
 
 0  1  2  3  4  5  6
-7  8  9 10 11 12 13
+7  8  9  10 11 12 13
 14 15 16 17 18 19 20
 21 22 23 24 25 26 27
 28 29 30 31 32 33 34
@@ -106,7 +106,14 @@ def ordena_centro(jugadas, jugador):
     """
     Ordena las jugadas de acuerdo a la distancia al centro
     """
-    return sorted(jugadas, key=lambda x: abs(x - 4))
+    return sorted(jugadas, key=lambda x: abs(x - 3))
+
+def ordena_prioridades(jugadas, jugador):
+    """
+    Ordena las jugadas de acuerdo a una prioridad predefinida
+    """
+    prioridades = {3: 0, 2: 1, 4: 1, 1: 2, 5: 2, 0: 3, 6: 3}
+    return sorted(jugadas, key=lambda x: prioridades[x])
 
 def evalua_3con(s):
     """
@@ -150,15 +157,49 @@ def evalua_3con(s):
         raise ValueError("Evaluación fuera de rango --> ", promedio)
     return promedio
 
+def evalua_mejorada(s):
+    """
+    Evaluación mejorada para Conecta 4.
+    """
+    def puntos_ventana(ventana):
+        mis_fichas   = ventana.count(1)
+        fichas_rival = ventana.count(-1)
+
+        if mis_fichas > 0 and fichas_rival > 0:
+            return 0
+
+        if mis_fichas == 3:   return  50
+        if fichas_rival == 3: return -50
+        if mis_fichas == 2:   return  10
+        if fichas_rival == 2: return -10
+        return 0
+
+    total = (
+        # Horizontales
+        sum(puntos_ventana([s[7 * i + j + k] for k in range(4)])
+            for i in range(6) for j in range(4))
+        # Verticales
+        + sum(puntos_ventana([s[j + 7 * (i + k)] for k in range(4)])
+            for j in range(7) for i in range(3))
+        # Diagonales (\)
+        + sum(puntos_ventana([s[(i + k) * 7 + (j + k)] for k in range(4)])
+            for i in range(3) for j in range(4))
+        # Diagonales (/)
+        + sum(puntos_ventana([s[(i + k) * 7 + (j - k)] for k in range(4)])
+            for i in range(3) for j in range(3, 7))
+    )
+    return max(-0.999, min(0.999, total / 3450))
+
+
 if __name__ == '__main__':
 
     cfg = {
         "Jugador 1": "Humano",      #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
-        "Jugador 2": "Aleatorio",   #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
+        "Jugador 2": "Negamax",   #Puede ser "Humano", "Aleatorio", "Negamax", "Tiempo"
         "profundidad máxima": 5,
         "tiempo": 10,
-        "ordena": ordena_centro,    #Puede ser None o una función f(jugadas, j) -> lista de jugadas ordenada
-        "evalua": evalua_3con       #Puede ser None o una función f(estado) -> número entre -1 y 1
+        "ordena": ordena_prioridades,    #Puede ser None o una función f(jugadas, j) -> lista de jugadas ordenada
+        "evalua": evalua_mejorada       #Puede ser None o una función f(estado) -> número entre -1 y 1
     }
 
     def jugador_cfg(cadena):

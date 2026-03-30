@@ -156,7 +156,13 @@ def minimax(juego, s, j):
     return max(
         juego.jugadas_legales(s, j),
         key=lambda a: min_val( juego.sucesor(s, a, j), -j))
-    
+
+    # Ejemplo del uso de key:
+    # ls = ['z', 'bc', 'aaa']
+    # max(ls) = 'z'
+    #
+    # max(ls, key = lambda x: len(x)) = 'aaa'
+
 class JugadorMinimax(Jugador):
     """
     Jugador que escoge la mejor jugada usando minimax
